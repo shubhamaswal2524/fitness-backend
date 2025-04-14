@@ -1,0 +1,389 @@
+openapi: 3.0.0
+info:
+  title: Gym API
+  version: 1.0.0
+  description: API documentation for user authentication, payment services, and gym package management.
+  contact:
+    name: Your Name
+    email: your.email@example.com
+
+tags:
+  - name: User
+    description: User authentication and management APIs
+  - name: Payment
+    description: Payment processing, order creation, and package management APIs
+
+paths:
+  /api/v1/user/create:
+    post:
+      summary: Create a new user
+      tags: [User]
+      description: Registers a new user with their details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - first_name
+                - last_name
+                - email
+                - password
+                - phone_number
+              properties:
+                first_name:
+                  type: string
+                  example: "John"
+                last_name:
+                  type: string
+                  example: "Doe"
+                email:
+                  type: string
+                  format: email
+                  example: "johndoe@example.com"
+                password:
+                  type: string
+                  example: "SecurePass123"
+                phone_number:
+                  type: string
+                  example: "+911234567890"
+      responses:
+        "201":
+          description: User created successfully
+        "400":
+          description: User already exists
+        "500":
+          description: Failed to create user
+
+  /api/v1/user/login:
+    post:
+      summary: Login user
+      tags: [User]
+      description: Authenticates a user and returns a JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "johndoe@example.com"
+                password:
+                  type: string
+                  example: "SecurePass123"
+      responses:
+        "200":
+          description: Login successful
+        "401":
+          description: Invalid email or password
+        "500":
+          description: Login failed
+
+  /api/v1/user/forgot-password:
+    post:
+      summary: Request password reset
+      tags: [User]
+      description: Sends a reset token to the user's email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "johndoe@example.com"
+      responses:
+        "200":
+          description: Password reset token sent
+        "400":
+          description: User does not exist
+        "500":
+          description: Failed to send reset token
+
+  /api/v1/user/reset-password:
+    post:
+      summary: Reset password
+      tags: [User]
+      description: Allows the user to reset their password using a reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - newPassword
+              properties:
+                token:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5c..."
+                newPassword:
+                  type: string
+                  example: "NewSecurePass123"
+      responses:
+        "200":
+          description: Password reset successfully
+        "401":
+          description: Invalid or expired token
+        "500":
+          description: Failed to reset password
+
+  /api/v1/user/change-password:
+    post:
+      summary: Change password
+      tags: [User]
+      description: Allows authenticated users to change their password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oldPassword
+                - newPassword
+              properties:
+                oldPassword:
+                  type: string
+                  example: "OldPass123"
+                newPassword:
+                  type: string
+                  example: "NewSecurePass123"
+      responses:
+        "200":
+          description: Password changed successfully
+        "401":
+          description: Incorrect old password
+        "500":
+          description: Failed to change password
+
+  /api/v1/payment/create-order:
+    post:
+      summary: Create a payment order
+      tags: [Payment]
+      description: Creates a new payment order with the specified amount and currency
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - currency
+              properties:
+                amount:
+                  type: number
+                  example: 1000
+                currency:
+                  type: string
+                  example: "INR"
+      responses:
+        "201":
+          description: Order created successfully
+        "500":
+          description: Failed to create order
+
+  /api/v1/payment/verify-payment:
+    post:
+      summary: Verify a payment
+      tags: [Payment]
+      description: Verifies a payment using Razorpay order, payment, and signature IDs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - razorpay_order_id
+                - razorpay_payment_id
+                - razorpay_signature
+              properties:
+                razorpay_order_id:
+                  type: string
+                  example: "order_12345"
+                razorpay_payment_id:
+                  type: string
+                  example: "payment_12345"
+                razorpay_signature:
+                  type: string
+                  example: "signature_12345"
+      responses:
+        "201":
+          description: Payment verified successfully
+        "400":
+          description: Invalid payment signature
+        "500":
+          description: Failed to verify payment
+
+  /api/v1/payment/fetch-packages:
+    get:
+      summary: Fetch all available gym packages
+      tags: [Payment]
+      description: Retrieves a list of all available gym packages
+      responses:
+        "200":
+          description: Packages fetched successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    package_name:
+                      type: string
+                      example: "Basic Package"
+                    description:
+                      type: string
+                      example: "A basic gym membership package"
+                    price:
+                      type: number
+                      example: 1000
+                    duration:
+                      type: number
+                      example: 30
+                    benefits:
+                      type: array
+                      items:
+                        type: string
+                      example:
+                        - "Access to gym"
+                        - "1 personal training session"
+        "404":
+          description: No packages found
+        "500":
+          description: Failed to fetch packages
+
+  /api/v1/payment/create-package:
+    post:
+      summary: Create a new gym package
+      tags: [Payment]
+      description: Creates a new gym package with details like name, description, price, etc.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - package_name
+                - description
+                - price
+                - duration
+                - benefits
+              properties:
+                package_name:
+                  type: string
+                  example: "Standard Package"
+                description:
+                  type: string
+                  example: "A premium gym membership package"
+                price:
+                  type: number
+                  example: 2000
+                duration:
+                  type: number
+                  example: 60
+                benefits:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - "Access to gym"
+                    - "2 personal training sessions"
+                    - "Yoga classes"
+      responses:
+        "200":
+          description: Package created successfully
+        "400":
+          description: Package already exists
+        "500":
+          description: Failed to create package
+
+  /api/v1/payment/update-package:
+    patch:
+      summary: Update an existing gym package
+      tags: [Payment]
+      description: Updates the details of an existing gym package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - package_name
+                - description
+                - price
+                - duration
+                - benefits
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                package_name:
+                  type: string
+                  example: "Updated Standard Package"
+                description:
+                  type: string
+                  example: "Updated premium gym membership package"
+                price:
+                  type: number
+                  example: 2500
+                duration:
+                  type: number
+                  example: 90
+                benefits:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    - "Access to gym"
+                    - "3 personal training sessions"
+                    - "Yoga & Zumba classes"
+      responses:
+        "200":
+          description: Package updated successfully
+        "500":
+          description: Failed to update package
+
+  /api/v1/payment/delete-package:
+    delete:
+      summary: Delete an existing gym package
+      tags: [Payment]
+      description: Deletes a gym package based on its ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                  example: 1
+      responses:
+        "200":
+          description: Package deleted successfully
+        "404":
+          description: Package not found
+        "500":
+          description: Failed to delete package

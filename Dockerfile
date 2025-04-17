@@ -1,14 +1,30 @@
-FROM node:20
+# Stage 1: Build
+FROM node:18 AS builder
 
-COPY package.json package.json
-COPY package-lock.json package-lock.json
-COPY index.ts index.ts
-COPY tsconfig.json tsconfig.json
+WORKDIR /app
 
-
-
-
+# Install deps
+COPY package*.json ./
 RUN npm install
-RUN npm install -g ts-node nodemon
 
-ENTRYPOINT ["ts-node","index.ts"]
+# Copy TypeScript source
+COPY . .
+
+# Build the TypeScript app
+RUN npm run build
+
+# Stage 2: Run
+FROM node:18-slim
+
+WORKDIR /app
+
+# Copy only the compiled output and dependencies
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY package*.json ./
+
+# Expose the app port (adjust if needed)
+EXPOSE 3000
+
+# Start the app (adjust entry if different)
+CMD ["node", "dist/index.js"]

@@ -6,6 +6,7 @@ import {
   loginSchema,
   userSchema,
 } from "../services/validation.service";
+import { jwtAuth } from "../middlewares/jwt.middleware";
 
 export default express
   .Router()
@@ -21,6 +22,7 @@ export default express
 
   // Reset Password - Resets the user's password using the token
   .post("/reset-password", userController.resetPassword)
+  // .all("*", jwtAuth)
 
   // Change Password - Change password for authenticated users
   .post("/change-password", userController.changePassword)

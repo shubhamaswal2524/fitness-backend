@@ -15,7 +15,7 @@ export default class ExpressServer {
     dotenv.config();
     this.app = express();
     this.setupMiddleware();
-    this.listen(8000);
+    this.listen(Number(process.env.PORT || 8000));
   }
 
   private setupMiddleware(): void {

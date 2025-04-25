@@ -7,11 +7,7 @@ export const Users = db.sequelize.define("users", {
     autoIncrement: true,
     primaryKey: true,
   },
-  first_name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  last_name: {
+  name: {
     type: DataTypes.STRING,
     allowNull: false,
   },
@@ -27,15 +23,19 @@ export const Users = db.sequelize.define("users", {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  phone_number: {
+  phoneNumber: {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  phone_code: {
+  age: {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  date_of_birth: {
+  phoneCode: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  dob: {
     type: DataTypes.DATEONLY,
     allowNull: true,
   },
@@ -47,28 +47,11 @@ export const Users = db.sequelize.define("users", {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  membership_type: {
-    type: DataTypes.ENUM("Basic", "Standard", "Premium"),
-    allowNull: false,
-    defaultValue: "Basic",
-  },
-  membership_start_date: {
-    type: DataTypes.DATE,
+  profilePicture: {
+    type: DataTypes.STRING, // Store image URL or file path
     allowNull: true,
   },
-  membership_end_date: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  emergency_contact_name: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  emergency_contact_phone: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  profile_picture: {
+  physiquePicture: {
     type: DataTypes.STRING, // Store image URL or file path
     allowNull: true,
   },
@@ -80,17 +63,21 @@ export const Users = db.sequelize.define("users", {
     type: DataTypes.FLOAT,
     allowNull: true,
   },
-  fitness_goal: {
+  fitnessGoal: {
     type: DataTypes.STRING, // Example: "Weight Loss", "Muscle Gain", "Endurance"
     allowNull: true,
   },
-  workout_preferences: {
+  workoutPreferences: {
     type: DataTypes.STRING, // Example: "Cardio", "Strength Training", "Yoga"
     allowNull: true,
   },
-  is_active: {
+  isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
+  },
+  userAccessToken: {
+    type: DataTypes.STRING, // Store image URL or file path
+    allowNull: true,
   },
   created_at: {
     type: DataTypes.DATE,

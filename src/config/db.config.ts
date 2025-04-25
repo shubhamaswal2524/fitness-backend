@@ -41,7 +41,8 @@ const sequelize = new Sequelize(
 
 // Sync database models (Ensure tables exist)
 sequelize
-  .sync({ alter: true })
+  // .sync({ force: true })
+  .sync()
   .then(() => {
     console.log("Database connected and synced successfully.");
   })

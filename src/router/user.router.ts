@@ -6,24 +6,32 @@ import {
   loginSchema,
   userSchema,
 } from "../services/validation.service";
-import { jwtAuth } from "../middlewares/jwt.middleware";
+import jwtAuth from "../middlewares/jwt.middleware";
+import { upload } from "../middlewares/upload.middleware";
 
 export default express
   .Router()
   .post("/create", validateRequest(userSchema), userController.createUser)
   .post("/login", validateRequest(loginSchema), userController.loginUser)
-
-  // Forgot Password - Sends a reset token to the user's email
   .post(
     "/forgot-password",
     validateRequest(forgotPasswordSchema),
     userController.forgotPassword
   )
-
-  // Reset Password - Resets the user's password using the token
   .post("/reset-password", userController.resetPassword)
-  // .all("*", jwtAuth)
-
-  // Change Password - Change password for authenticated users
+  .all("/*", jwtAuth)
+  .post("/logout", userController.logoutUser)
   .post("/change-password", userController.changePassword)
-  .patch("/update-profile", userController.updateProfile);
+  .patch(
+    "/update-profile",
+    (req, res, next) => {
+      upload(req as any, res as any, (err: any) => {
+        if (err) {
+          return res.status(400).json({ error: err.message });
+        }
+        next();
+      });
+    },
+    userController.updateProfile
+  )
+  .get("/get-profile", userController.getProfile);

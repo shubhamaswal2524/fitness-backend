@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-export const jwtAuth = (req: Request, res: Response, next: NextFunction) => {
+const jwtAuth = (req: Request, res: Response, next: NextFunction): any => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -38,3 +38,5 @@ export const jwtAuth = (req: Request, res: Response, next: NextFunction) => {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
+export default jwtAuth;

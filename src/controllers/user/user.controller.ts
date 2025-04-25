@@ -10,38 +10,26 @@ import statusCodes from "../../utils/helperConstants";
 import { Op } from "sequelize";
 import { whatsappService } from "../../services/whatsapp.service.ts/whatsapp.service";
 import { generateRandomPassword } from "../../services/global.services";
+import { v4 as uuidv4 } from "uuid";
+import path from "path";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { uploadFileToS3 } from "../../middlewares/upload.middleware";
+
+interface S3File extends Express.Multer.File {
+  location: string; // S3 file URL
+  key: string; // S3 key (filename)
+}
 
 class UserController {
   // Create a new user
   public async createUser(req: Request, res: Response): Promise<any> {
     try {
-      const {
-        first_name,
-        last_name,
-        email,
-        phone_number,
-        password,
-        // phone_code,
-        // date_of_birth,
-        // gender,
-        // address,
-        // membership_type,
-        // membership_start_date,
-        // membership_end_date,
-        // emergency_contact_name,
-        // emergency_contact_phone,
-        // profile_picture,
-        // weight,
-        // height,
-        // fitness_goal,
-        // workout_preferences,
-        // is_active,
-      } = req.body;
+      const { firstName, lastName, email, phoneNumber, password } = req.body;
 
       // Check if user exists
       const user = await Users.findOne({
         where: {
-          [Op.or]: [{ email }, { phone_number }],
+          [Op.or]: [{ email }, { phoneNumber }],
         },
       });
 
@@ -57,25 +45,11 @@ class UserController {
       const hashedPassword = await bcrypt.hash(password, saltRounds);
 
       const newUser = await Users.create({
-        first_name,
-        last_name,
+        name: `${firstName} ${lastName}`,
         email,
         password: hashedPassword, // You should hash the password before storing it
-        phone_number,
+        phoneNumber,
         phone_code: 91,
-        // date_of_birth,
-        // gender,
-        // address,
-        // membership_type,
-        // membership_start_date,
-        // membership_end_date,
-        // emergency_contact_name,
-        // emergency_contact_phone,
-        // profile_picture,
-        // weight,
-        // height,
-        // fitness_goal,
-        // workout_preferences,
         is_active: true,
       });
 
@@ -145,6 +119,25 @@ class UserController {
     } catch (error: any) {
       return MessageUtil.error(res, {
         message: "Login failed",
+        status: 500,
+        data: error.message,
+      });
+    }
+  }
+
+  public async logoutUser(req: Request, res: Response): Promise<any> {
+    try {
+      // Optionally, you could invalidate the token via a blacklist (not covered here)
+      const responsePayload: IReturnResponsePayload<null> = {
+        message: "Logout successful",
+        status: 200,
+        data: null,
+      };
+
+      return MessageUtil.success(res, responsePayload);
+    } catch (error: any) {
+      return MessageUtil.error(res, {
+        message: "Logout failed",
         status: 500,
         data: error.message,
       });
@@ -267,25 +260,107 @@ class UserController {
 
   public async updateProfile(req: Request, res: Response): Promise<any> {
     try {
-      const {
-        name,
-        age,
-        gender,
-        weight,
-        height,
-        location,
-        description,
-        profile_picture,
-        physic_picture,
-      } = req.body;
+      const user = req.user;
+      const formData = req.body; // Fields like name, age, etc.
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] }; // Multer files
+      console.log("user====>>>>>", user); // Check user data here
+      console.log("formData====>>>>>", formData); // Check form data here
+      console.log("files====>>>>>", files); // Check files here
+      const userDetail = await Users.findOne({ where: { id: user?.id } });
+      if (!userDetail) {
+        return MessageUtil.error(res, {
+          message: "User not found",
+          status: statusCodes.NOT_FOUND,
+        });
+      }
 
-      return MessageUtil.success(res, {
-        message: "Password changed successfully",
-        status: 200,
-      });
+      const uploadedUrls: { [key: string]: string } = {};
+      if (files) {
+        for (const [fieldName, fileArray] of Object.entries(files)) {
+          const file = fileArray[0]; // Assume single file for each field
+          const url = await uploadFileToS3(file, fieldName); // Upload and get URL
+          uploadedUrls[fieldName] = url;
+        }
+      }
+
+      const updated = Users.update(
+        {
+          ...formData,
+          ...uploadedUrls, // Add the S3 URLs to the data
+        },
+        { where: { id: user?.id } }
+      );
+      if (updated) {
+        return MessageUtil.success(res, {
+          message: "Profile Updated successfully",
+          status: 200,
+        });
+      } else {
+        return MessageUtil.error(res, {
+          message: "Failed to update profile , Please try again.",
+          status: 500,
+        });
+      }
     } catch (error: any) {
       return MessageUtil.error(res, {
-        message: "Failed to change password",
+        message: "Failed to update profile ",
+        status: 500,
+        data: error.message,
+      });
+    }
+  }
+  public async getProfile(req: Request, res: Response): Promise<any> {
+    try {
+      const user = req.user;
+      console.log("user", user);
+      const userDetail = await Users.findOne({ where: { id: user?.id } });
+      if (!userDetail) {
+        return MessageUtil.error(res, {
+          message: "User not found",
+          status: statusCodes.NOT_FOUND,
+        });
+      }
+
+      const result = await Users.findOne({
+        where: { id: user?.id },
+        attributes: [
+          "id",
+          "name",
+          "email",
+          "phoneCode",
+          "phoneNumber",
+          "age",
+          "gender",
+          "dob",
+          "height",
+          "weight",
+          "address",
+          "fitnessGoal",
+          "workoutPreferences",
+          "profilePicture",
+          "physiquePicture",
+          "isActive",
+          "created_at",
+          "updated_at",
+        ],
+      });
+
+      console.log("result----->>", result);
+      if (result) {
+        return MessageUtil.success(res, {
+          message: "User data fetched successfully",
+          status: 200,
+          data: result,
+        });
+      } else {
+        return MessageUtil.error(res, {
+          message: "Failed to fetch profile , Please try again.",
+          status: 400,
+        });
+      }
+    } catch (error: any) {
+      return MessageUtil.error(res, {
+        message: "Failed to fetch profile",
         status: 500,
         data: error.message,
       });

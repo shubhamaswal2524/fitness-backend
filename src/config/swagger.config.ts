@@ -19,7 +19,9 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: [path.join(__dirname, "../swagger/*.yaml")], // Pointing to the JS files after TypeScript compilation
+  apis: [
+    path.join(__dirname, "../swagger/*.yaml"), // All YAML definitions in /swagger folder
+  ],
 };
 
 // Initialize Swagger Docs

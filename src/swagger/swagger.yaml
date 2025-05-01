@@ -10,10 +10,13 @@ info:
 tags:
   - name: User
     description: User authentication and management APIs
+  - name: Admin
+    description: Admin management APIs
   - name: Payment
     description: Payment processing, order creation, and package management APIs
 
 paths:
+  # User endpoints (previous ones remain the same)
   /api/v1/user/create:
     post:
       summary: Create a new user
@@ -26,16 +29,16 @@ paths:
             schema:
               type: object
               required:
-                - first_name
-                - last_name
+                - firstName
+                - lastName
                 - email
                 - password
-                - phone_number
+                - phoneNumber
               properties:
-                first_name:
+                firstName:
                   type: string
                   example: "John"
-                last_name:
+                lastName:
                   type: string
                   example: "Doe"
                 email:
@@ -45,12 +48,25 @@ paths:
                 password:
                   type: string
                   example: "SecurePass123"
-                phone_number:
+                phoneNumber:
                   type: string
                   example: "+911234567890"
       responses:
         "201":
           description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User created successfully"
+                  status:
+                    type: integer
+                    example: 201
+                  data:
+                    $ref: "#/components/schemas/User"
         "400":
           description: User already exists
         "500":
@@ -81,10 +97,51 @@ paths:
       responses:
         "200":
           description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Login successful"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         "401":
           description: Invalid email or password
         "500":
           description: Login failed
+
+  /api/v1/user/logout:
+    post:
+      summary: Logout user
+      tags: [User]
+      description: Logs out the current user (token invalidation)
+      responses:
+        "200":
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logout successful"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: null
+        "500":
+          description: Logout failed
 
   /api/v1/user/forgot-password:
     post:
@@ -107,6 +164,23 @@ paths:
       responses:
         "200":
           description: Password reset token sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset token generated successfully"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      resetToken:
+                        type: string
+                        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         "400":
           description: User does not exist
         "500":
@@ -136,6 +210,17 @@ paths:
       responses:
         "200":
           description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset successfully"
+                  status:
+                    type: integer
+                    example: 200
         "401":
           description: Invalid or expired token
         "500":
@@ -146,6 +231,8 @@ paths:
       summary: Change password
       tags: [User]
       description: Allows authenticated users to change their password
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -165,11 +252,759 @@ paths:
       responses:
         "200":
           description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password changed successfully"
+                  status:
+                    type: integer
+                    example: 200
         "401":
           description: Incorrect old password
+        "404":
+          description: User not found
+        "500":
+          description: Failed to change password
+  /api/v1/user/update-profile:
+    patch:
+      summary: Update user profile
+      tags: [User]
+      description: Updates user profile information and uploads files to S3
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "John Doe"
+                age:
+                  type: integer
+                  example: 30
+                gender:
+                  type: string
+                  enum: [male, female, other]
+                  example: "male"
+                dob:
+                  type: string
+                  format: date
+                  example: "1990-01-01"
+                height:
+                  type: number
+                  example: 175.5
+                weight:
+                  type: number
+                  example: 70.2
+                address:
+                  type: string
+                  example: "123 Main St, City"
+                fitnessGoal:
+                  type: string
+                  example: "Weight loss"
+                workoutPreferences:
+                  type: string
+                  example: "Cardio, Strength training"
+                profilePicture:
+                  type: string
+                  format: binary
+                physiquePicture:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Profile Updated successfully"
+                  status:
+                    type: integer
+                    example: 200
+        "400":
+          description: Invalid input data
+        "401":
+          description: Unauthorized - User not authenticated
+        "404":
+          description: User not found
+        "500":
+          description: Failed to update profile
+
+  /api/v1/user/get-profile:
+    get:
+      summary: Get user profile
+      tags: [User]
+      description: Retrieves the authenticated user's profile information
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User data fetched successfully"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized - User not authenticated
+        "404":
+          description: User not found
+        "500":
+          description: Failed to fetch profile
+
+  /api/v1/user/update-workout-status:
+    patch:
+      summary: Update workout session status
+      tags: [Workout]
+      description: Updates the status of a workout session (completed/skipped)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - status
+              properties:
+                sessionId:
+                  type: integer
+                  example: 1
+                status:
+                  type: string
+                  enum: [completed, skipped]
+                  example: "completed"
+                timeTaken:
+                  type: integer
+                  description: Time taken in minutes (required if status is completed)
+                  example: 45
+                notes:
+                  type: string
+                  example: "Great session!"
+      responses:
+        "200":
+          description: Workout session updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Workout session updated successfully"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    $ref: "#/components/schemas/WorkoutSession"
+        "400":
+          description: Invalid input data
+        "401":
+          description: Unauthorized - User not authenticated
+        "404":
+          description: Workout session not found
+        "500":
+          description: Failed to update workout session
+
+  /api/v1/user/notifications:
+    get:
+      summary: Get user notifications
+      tags: [User]
+      description: Retrieves all notifications for the authenticated user (including global notifications)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Notifications fetched successfully"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notification"
+        "401":
+          description: Unauthorized - User not authenticated
+        "500":
+          description: Failed to fetch notifications
+
+  # Admin endpoints
+  /api/v1/admin/login:
+    post:
+      summary: Admin login
+      tags: [Admin]
+      description: Authenticates an admin and returns a JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@yopmail.com"
+                password:
+                  type: string
+                  example: "Admin@123"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Login successful"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "401":
+          description: Invalid email or password
+        "500":
+          description: Login failed
+
+  /api/v1/admin/forgot-password:
+    post:
+      summary: Admin forgot password
+      tags: [Admin]
+      description: Sends a reset token to the admin's email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@example.com"
+      responses:
+        "200":
+          description: Password reset token sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset token generated successfully"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      resetToken:
+                        type: string
+                        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "400":
+          description: Admin does not exist
+        "500":
+          description: Failed to send reset token
+
+  /api/v1/admin/reset-password:
+    post:
+      summary: Admin reset password
+      tags: [Admin]
+      description: Allows the admin to reset their password using a reset token
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - newPassword
+              properties:
+                token:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5c..."
+                newPassword:
+                  type: string
+                  example: "NewSecurePass123"
+      responses:
+        "200":
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset successfully"
+                  status:
+                    type: integer
+                    example: 200
+        "401":
+          description: Invalid or expired token
+        "500":
+          description: Failed to reset password
+
+  /api/v1/admin/change-password:
+    post:
+      summary: Admin change password
+      tags: [Admin]
+      description: Allows authenticated admin to change their password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oldPassword
+                - newPassword
+              properties:
+                oldPassword:
+                  type: string
+                  example: "OldPass123"
+                newPassword:
+                  type: string
+                  example: "NewSecurePass123"
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password changed successfully"
+                  status:
+                    type: integer
+                    example: 200
+        "401":
+          description: Incorrect old password
+        "404":
+          description: Admin not found
         "500":
           description: Failed to change password
 
+  /api/v1/admin/update-profile:
+    patch:
+      summary: Update admin profile
+      tags: [Admin]
+      description: Updates admin profile information and uploads files to S3
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Admin User"
+                age:
+                  type: integer
+                  example: 35
+                gender:
+                  type: string
+                  example: "male"
+                dob:
+                  type: string
+                  format: date
+                  example: "1985-01-01"
+                height:
+                  type: number
+                  example: 180.5
+                weight:
+                  type: number
+                  example: 75.2
+                address:
+                  type: string
+                  example: "123 Admin St, City"
+                profilePicture:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Profile Updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Profile Updated successfully"
+                  status:
+                    type: integer
+                    example: 200
+        "404":
+          description: Admin not found
+        "500":
+          description: Failed to update profile
+
+  /api/v1/admin/get-profile:
+    get:
+      summary: Get admin profile
+      tags: [Admin]
+      description: Retrieves the authenticated admin's profile information
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Admin data fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Admin data fetched successfully"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    $ref: "#/components/schemas/AdminProfile"
+        "404":
+          description: Admin not found
+        "500":
+          description: Failed to fetch profile
+
+  /api/v1/admin/get-users:
+    get:
+      summary: Get all users
+      tags: [Admin]
+      description: Retrieves a list of all users (for admin)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Users fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User data fetched successfully"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        example: 10
+                      rows:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/UserProfile"
+        "500":
+          description: Failed to fetch users
+
+  /api/v1/admin/get-workouts:
+    get:
+      summary: Get all workouts
+      tags: [Admin]
+      description: Retrieves a list of all workouts (for admin)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Workouts fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Workouts fetched successfully"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        example: 5
+                      rows:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Workout"
+        "500":
+          description: Failed to fetch workouts
+
+  /api/v1/admin/create-workouts:
+    post:
+      summary: Create or update workout
+      tags: [Admin]
+      description: Creates a new workout or updates an existing one
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - type
+                - body_part
+                - muscle_targeted
+                - equipment
+                - sets
+                - reps
+              properties:
+                id:
+                  type: integer
+                  description: Required for update, omit for create
+                  example: 1
+                name:
+                  type: string
+                  example: "Bench Press"
+                type:
+                  type: string
+                  example: "Strength"
+                body_part:
+                  type: string
+                  example: "Chest"
+                muscle_targeted:
+                  type: string
+                  example: "Pectorals"
+                equipment:
+                  type: string
+                  example: "Barbell"
+                sets:
+                  type: integer
+                  example: 3
+                reps:
+                  type: integer
+                  example: 10
+      responses:
+        "200":
+          description: Workout created/updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Workout created successfully"
+                  status:
+                    type: integer
+                    example: 200
+                  data:
+                    $ref: "#/components/schemas/Workout"
+        "400":
+          description: Invalid input
+        "500":
+          description: Failed to create/update workout
+
+  /api/v1/admin/delete-workouts:
+    delete:
+      summary: Delete workout
+      tags: [Admin]
+      description: Deletes a workout by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: Workout deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Workout deleted successfully"
+                  status:
+                    type: integer
+                    example: 200
+        "404":
+          description: Workout not found
+        "500":
+          description: Failed to delete workout
+
+  /api/v1/admin/create-user-workout:
+    post:
+      summary: Assign workout to user
+      tags: [Admin]
+      description: Creates workout sessions for a user on specific days
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workouts
+                - userId
+                - day
+              properties:
+                workouts:
+                  type: array
+                  items:
+                    type: integer
+                  example: [1, 2, 3]
+                userId:
+                  type: integer
+                  example: 1
+                day:
+                  type: string
+                  enum:
+                    [
+                      monday,
+                      tuesday,
+                      wednesday,
+                      thursday,
+                      friday,
+                      saturday,
+                      sunday,
+                    ]
+                  example: "monday"
+      responses:
+        "201":
+          description: Workout session assigned to user successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Workout session assigned to user successfully"
+                  status:
+                    type: integer
+                    example: 201
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserWorkoutSession"
+        "400":
+          description: Invalid input
+        "404":
+          description: User or workout not found
+        "500":
+          description: Failed to assign workout
+
+  /api/v1/admin/create-notification:
+    post:
+      summary: Create notification
+      tags: [Admin]
+      description: Creates a new notification (can be global or user-specific)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+                - message
+              properties:
+                title:
+                  type: string
+                  example: "New Feature"
+                message:
+                  type: string
+                  example: "Check out our new workout feature!"
+                target_user_id:
+                  type: integer
+                  description: Omit for global notification
+                  example: 1
+                notificationFile:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Notification created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Notification created successfully"
+                  status:
+                    type: integer
+                    example: 201
+                  data:
+                    $ref: "#/components/schemas/Notification"
+        "400":
+          description: Title and message are required
+        "500":
+          description: Failed to create notification
+
+  # Payment endpoints remain the same as in your original swagger
   /api/v1/payment/create-order:
     post:
       summary: Create a payment order
@@ -387,3 +1222,289 @@ paths:
           description: Package not found
         "500":
           description: Failed to delete package
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          example: "johndoe@example.com"
+        phoneNumber:
+          type: string
+          example: "+911234567890"
+        phone_code:
+          type: integer
+          example: 91
+        is_active:
+          type: boolean
+          example: true
+        role:
+          type: string
+          example: "user"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          example: "johndoe@example.com"
+        phoneCode:
+          type: integer
+          example: 91
+        phoneNumber:
+          type: string
+          example: "+911234567890"
+        age:
+          type: integer
+          example: 30
+        gender:
+          type: string
+          example: "male"
+        dob:
+          type: string
+          format: date
+          example: "1990-01-01"
+        height:
+          type: number
+          example: 175.5
+        weight:
+          type: number
+          example: 70.2
+        address:
+          type: string
+          example: "123 Main St, City"
+        fitnessGoal:
+          type: string
+          example: "Weight loss"
+        workoutPreferences:
+          type: string
+          example: "Cardio, Strength training"
+        profilePicture:
+          type: string
+          example: "https://s3.amazonaws.com/bucket/profile.jpg"
+        physiquePicture:
+          type: string
+          example: "https://s3.amazonaws.com/bucket/physique.jpg"
+        isActive:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    WorkoutSession:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        workout_id:
+          type: integer
+          example: 1
+        status:
+          type: string
+          example: "completed"
+        time_taken_minutes:
+          type: integer
+          example: 45
+        notes:
+          type: string
+          example: "Great session!"
+        scheduled_at:
+          type: string
+          format: date-time
+        logged_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "New Workout Available"
+        message:
+          type: string
+          example: "A new workout has been added to your plan"
+        is_global:
+          type: boolean
+          example: false
+        target_user_id:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AdminProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Admin User"
+        email:
+          type: string
+          example: "admin@example.com"
+        phoneCode:
+          type: integer
+          example: 91
+        phoneNumber:
+          type: string
+          example: "+911234567890"
+        age:
+          type: integer
+          example: 35
+        gender:
+          type: string
+          example: "male"
+        dob:
+          type: string
+          format: date
+          example: "1985-01-01"
+        height:
+          type: number
+          example: 180.5
+        weight:
+          type: number
+          example: 75.2
+        address:
+          type: string
+          example: "123 Admin St, City"
+        profilePicture:
+          type: string
+          example: "https://s3.amazonaws.com/bucket/profile.jpg"
+        isActive:
+          type: boolean
+          example: true
+        role:
+          type: string
+          example: "admin"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Workout:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Bench Press"
+        type:
+          type: string
+          example: "Strength"
+        body_part:
+          type: string
+          example: "Chest"
+        muscle_targeted:
+          type: string
+          example: "Pectorals"
+        equipment:
+          type: string
+          example: "Barbell"
+        sets:
+          type: integer
+          example: 3
+        reps:
+          type: integer
+          example: 10
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserWorkoutSession:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        workout_id:
+          type: integer
+          example: 1
+        day:
+          type: string
+          example: "monday"
+        order_index:
+          type: integer
+          example: 1
+        status:
+          type: string
+          example: "pending"
+        time_taken_minutes:
+          type: integer
+          nullable: true
+          example: 45
+        notes:
+          type: string
+          nullable: true
+          example: "Good session"
+        scheduled_at:
+          type: string
+          format: date-time
+        logged_at:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

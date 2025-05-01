@@ -28,6 +28,7 @@ export const upload = multer({
 }).fields([
   { name: "profilePicture", maxCount: 1 },
   { name: "physiquePicture", maxCount: 1 },
+  { name: "notificationFile", maxCount: 1 },
 ]);
 
 // Function to upload file to S3

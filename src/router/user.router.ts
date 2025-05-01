@@ -8,11 +8,13 @@ import {
 } from "../services/validation.service";
 import jwtAuth from "../middlewares/jwt.middleware";
 import { upload } from "../middlewares/upload.middleware";
+import { authorizeRoles } from "../middlewares/authorization.model";
 
 export default express
   .Router()
   .post("/create", validateRequest(userSchema), userController.createUser)
   .post("/login", validateRequest(loginSchema), userController.loginUser)
+  .post("/contactUs", userController.contactUs)
   .post(
     "/forgot-password",
     validateRequest(forgotPasswordSchema),
@@ -20,10 +22,15 @@ export default express
   )
   .post("/reset-password", userController.resetPassword)
   .all("/*", jwtAuth)
-  .post("/logout", userController.logoutUser)
-  .post("/change-password", userController.changePassword)
+  .post("/logout", authorizeRoles("user"), userController.logoutUser)
+  .post(
+    "/change-password",
+    authorizeRoles("user"),
+    userController.changePassword
+  )
   .patch(
     "/update-profile",
+    authorizeRoles("user"),
     (req, res, next) => {
       upload(req as any, res as any, (err: any) => {
         if (err) {
@@ -34,4 +41,14 @@ export default express
     },
     userController.updateProfile
   )
-  .get("/get-profile", userController.getProfile);
+  .get("/get-profile", authorizeRoles("user"), userController.getProfile)
+  .patch(
+    "/update-workout-status",
+    authorizeRoles("user"),
+    userController.updateWorkoutStatus
+  )
+  .get(
+    "/notifications",
+    authorizeRoles("user", "admin"),
+    userController.getUserNotifications
+  );

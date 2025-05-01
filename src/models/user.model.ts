@@ -1,5 +1,6 @@
 import { DataTypes } from "sequelize";
 import db from "../config/db.config";
+import { UserWorkoutSessions } from "./user_workout_sessions.model";
 
 export const Users = db.sequelize.define("users", {
   id: {
@@ -79,6 +80,11 @@ export const Users = db.sequelize.define("users", {
     type: DataTypes.STRING, // Store image URL or file path
     allowNull: true,
   },
+  role: {
+    type: DataTypes.ENUM("user", "admin"),
+    allowNull: false,
+    defaultValue: "user",
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
@@ -90,3 +96,8 @@ export const Users = db.sequelize.define("users", {
 });
 
 export default Users;
+
+// Users.hasMany(UserWorkoutSessions, {
+//   foreignKey: "user_id",
+//   as: "workout_sessions",
+// });

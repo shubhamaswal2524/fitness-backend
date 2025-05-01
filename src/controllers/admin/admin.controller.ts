@@ -8,7 +8,13 @@ import {
 import jwt from "jsonwebtoken";
 import statusCodes from "../../utils/helperConstants";
 import { Op } from "sequelize";
+import { whatsappService } from "../../services/whatsapp.service.ts/whatsapp.service";
+import { generateRandomPassword } from "../../services/global.services";
+import { v4 as uuidv4 } from "uuid";
+import path from "path";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { uploadFileToS3 } from "../../middlewares/upload.middleware";
+import { Workouts } from "../../models/workouts.model";
 import { UserWorkoutSessions } from "../../models/user_workout_sessions.model";
 import { Notifications } from "../../models/notification.model";
 
@@ -17,69 +23,13 @@ interface S3File extends Express.Multer.File {
   key: string; // S3 key (filename)
 }
 
-class UserController {
-  // Create a new user
-  public async createUser(req: Request, res: Response): Promise<any> {
-    try {
-      const { firstName, lastName, email, phoneNumber, password } = req.body;
-
-      // Check if user exists
-      const user = await Users.findOne({
-        where: {
-          [Op.or]: [{ email }, { phoneNumber }],
-        },
-      });
-
-      if (user) {
-        return MessageUtil.error(res, {
-          message: "Invalid User or User already exists",
-          status: statusCodes.BAD_REQUEST,
-        });
-      }
-
-      // const password = generateRandomPassword(10);
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-      const newUser = await Users.create({
-        name: `${firstName} ${lastName}`,
-        email,
-        password: hashedPassword, // You should hash the password before storing it
-        phoneNumber,
-        phone_code: 91,
-        is_active: true,
-        role: "user",
-      });
-
-      // whatsappService.sendWhatsAppMessage(
-      //   phone_number  ,
-      //   "Hello! This is a test WhatsApp message 🎉"
-      // );
-
-      const responsePayload: IReturnResponsePayload<typeof newUser> = {
-        message: "User created successfully",
-        status: 201,
-        data: newUser,
-      };
-
-      return MessageUtil.success(res, responsePayload);
-    } catch (error: any) {
-      const errorPayload: IReturnResponsePayload = {
-        message: "Failed to create user",
-        status: 500,
-        data: error.message,
-      };
-
-      return MessageUtil.error(res, errorPayload);
-    }
-  }
-
+class AdminController {
   public async loginUser(req: Request, res: Response): Promise<any> {
     try {
       const { email, password } = req.body;
 
       // Check if user exists
-      const user = await Users.findOne({ where: { email, role: "user" } });
+      const user = await Users.findOne({ where: { email, role: "admin" } });
       if (!user) {
         return MessageUtil.error(res, {
           message: "Invalid email or password1",
@@ -148,7 +98,7 @@ class UserController {
       const { email } = req.body;
 
       // Check if user exists
-      const user = await Users.findOne({ where: { email, role: "user" } });
+      const user = await Users.findOne({ where: { email } });
       if (!user) {
         return MessageUtil.error(res, {
           message: "User with this email does not exist",
@@ -188,9 +138,7 @@ class UserController {
       const decoded: any = jwt.verify(token, process.env.JWT_SECRET as string);
 
       // Find user
-      const user = await Users.findOne({
-        where: { id: decoded.id, role: "user" },
-      });
+      const user = await Users.findOne({ where: { id: decoded.id } });
       if (!user) {
         return MessageUtil.error(res, {
           message: "Invalid or expired token",
@@ -223,7 +171,7 @@ class UserController {
       const userId = "1"; // Extract userId from the authenticated request
 
       // Find user
-      const user = await Users.findOne({ where: { id: userId, role: "user" } });
+      const user = await Users.findOne({ where: { id: userId } });
       if (!user) {
         return MessageUtil.error(res, {
           message: "User not found",
@@ -266,9 +214,7 @@ class UserController {
       console.log("user====>>>>>", user); // Check user data here
       console.log("formData====>>>>>", formData); // Check form data here
       console.log("files====>>>>>", files); // Check files here
-      const userDetail = await Users.findOne({
-        where: { id: user?.id, role: "user" },
-      });
+      const userDetail = await Users.findOne({ where: { id: user?.id } });
       if (!userDetail) {
         return MessageUtil.error(res, {
           message: "User not found",
@@ -311,13 +257,12 @@ class UserController {
       });
     }
   }
+
   public async getProfile(req: Request, res: Response): Promise<any> {
     try {
       const user = req.user;
       console.log("user", user);
-      const userDetail = await Users.findOne({
-        where: { id: user?.id, role: "user" },
-      });
+      const userDetail = await Users.findOne({ where: { id: user?.id } });
       if (!userDetail) {
         return MessageUtil.error(res, {
           message: "User not found",
@@ -371,112 +316,318 @@ class UserController {
     }
   }
 
-  public async updateWorkoutStatus(req: Request, res: Response): Promise<any> {
+  public async getUsers(req: Request, res: Response): Promise<any> {
     try {
-      const { sessionId, status, timeTaken, notes } = req.body;
+      const result = await Users.findAndCountAll({
+        where: { role: "user" },
+        attributes: [
+          "id",
+          "name",
+          "email",
+          "phoneCode",
+          "phoneNumber",
+          "age",
+          "gender",
+          "dob",
+          "height",
+          "weight",
+          "address",
+          "fitnessGoal",
+          "workoutPreferences",
+          "profilePicture",
+          "physiquePicture",
+          "isActive",
+          "created_at",
+          "updated_at",
+        ],
+      });
 
-      if (!sessionId || !["completed", "skipped"].includes(status)) {
+      console.log("result----->>", result);
+      if (result) {
+        return MessageUtil.success(res, {
+          message: "User data fetched successfully",
+          status: 200,
+          data: result,
+        });
+      } else {
         return MessageUtil.error(res, {
-          message: "Valid sessionId and status (completed/skipped) required",
+          message: "Failed to fetch profile , Please try again.",
+          status: 400,
+        });
+      }
+    } catch (error: any) {
+      return MessageUtil.error(res, {
+        message: "Failed to fetch profile",
+        status: 500,
+        data: error.message,
+      });
+    }
+  }
+
+  public async getWorkouts(req: Request, res: Response): Promise<any> {
+    try {
+      const result = await Workouts.findAndCountAll();
+
+      console.log("result----->>", result);
+      if (result) {
+        return MessageUtil.success(res, {
+          message: "User data fetched successfully",
+          status: 200,
+          data: result,
+        });
+      } else {
+        return MessageUtil.error(res, {
+          message: "Failed to fetch profile , Please try again.",
+          status: 400,
+        });
+      }
+    } catch (error: any) {
+      return MessageUtil.error(res, {
+        message: "Failed to fetch profile",
+        status: 500,
+        data: error.message,
+      });
+    }
+  }
+
+  public async createOrUpdateWorkouts(
+    req: Request,
+    res: Response
+  ): Promise<any> {
+    try {
+      const {
+        name,
+        type,
+        body_part,
+        muscle_targeted,
+        equipment,
+        sets,
+        reps,
+        id,
+      } = req.body;
+
+      const result = await Workouts.findByPk(id);
+      if (result) {
+        const updatedResult = await Workouts.update(
+          {
+            name,
+            type,
+            body_part,
+            muscle_targeted,
+            equipment,
+            sets,
+            reps,
+          },
+          { where: { id: id } }
+        );
+        if (updatedResult) {
+          return MessageUtil.success(res, {
+            message: "Workout updated successfully",
+            status: 200,
+            data: updatedResult,
+          });
+        } else {
+          return MessageUtil.error(res, {
+            message: "Failed to update workout , Please try again.",
+            status: 400,
+          });
+        }
+      }
+
+      const createResult = await Workouts.create({
+        name,
+        type,
+        body_part,
+        muscle_targeted,
+        equipment,
+        sets,
+        reps,
+      });
+
+      console.log("result----->>", result);
+      if (createResult) {
+        return MessageUtil.success(res, {
+          message: "Workout created successfully",
+          status: 200,
+          data: result,
+        });
+      } else {
+        return MessageUtil.error(res, {
+          message: "Failed to Create workout, Please try again.",
+          status: 400,
+        });
+      }
+    } catch (error: any) {
+      return MessageUtil.error(res, {
+        message: "Failed to create or update profile",
+        status: 500,
+        data: error.message,
+      });
+    }
+  }
+
+  public async deleteWorkouts(req: Request, res: Response): Promise<any> {
+    try {
+      const { id } = req.query;
+
+      const workout = await Workouts.findByPk(id);
+      if (!workout) {
+        return MessageUtil.error(res, {
+          message: "Workout not found",
+          status: 404,
+        });
+      }
+      const result = await Workouts.destroy({ where: { id: id } });
+
+      console.log("result----->>", result);
+      if (result) {
+        return MessageUtil.success(res, {
+          message: "Workout deleted successfully",
+          status: 200,
+          data: result,
+        });
+      } else {
+        return MessageUtil.error(res, {
+          message: "Failed to delete workout, Please try again.",
+          status: 400,
+        });
+      }
+    } catch (error: any) {
+      return MessageUtil.error(res, {
+        message: "Failed to delete workout",
+        status: 500,
+        data: error.message,
+      });
+    }
+  }
+
+  public async createUserWorkout(req: Request, res: Response): Promise<any> {
+    try {
+      const { workouts, userId, day } = req.body;
+
+      if (
+        !Array.isArray(workouts) ||
+        workouts.length === 0 ||
+        !userId ||
+        !day
+      ) {
+        return MessageUtil.error(res, {
+          message: "workouts, userId, and day are required",
           status: 400,
         });
       }
 
-      const session = await UserWorkoutSessions.findByPk(sessionId);
-      if (!session) {
+      const validWorkouts = await Workouts.findAll({ where: { id: workouts } });
+
+      if (validWorkouts.length !== workouts.length) {
         return MessageUtil.error(res, {
-          message: "Workout session not found",
+          message: "One or more workouts not found",
           status: 404,
         });
       }
 
-      await session.update({
-        status,
-        time_taken_minutes: status === "completed" ? timeTaken : null,
-        notes,
-        logged_at: new Date(),
-      });
-
-      return MessageUtil.success(res, {
-        message: "Workout session updated successfully",
-        status: 200,
-        data: session,
-      });
-    } catch (error: any) {
-      return MessageUtil.error(res, {
-        message: "Failed to update workout session",
-        status: 500,
-        data: error.message,
-      });
-    }
-  }
-
-  public async getUserNotifications(req: Request, res: Response): Promise<any> {
-    try {
-      const user = req.user;
-
-      if (!user?.id) {
+      const user = await Users.findByPk(userId);
+      if (!user) {
         return MessageUtil.error(res, {
-          message: "User not authenticated",
-          status: 401,
+          message: "User not found",
+          status: 404,
         });
       }
 
-      const notifications = await Notifications.findAll({
-        where: {
-          [Op.or]: [{ is_global: true }, { target_user_id: user.id }],
-          role: "user",
-        },
-        order: [["createdAt", "DESC"]],
-      });
+      const sessionRecords = await Promise.all(
+        workouts.map((workoutId: number, index: number) =>
+          UserWorkoutSessions.create({
+            user_id: userId,
+            workout_id: workoutId,
+            day,
+            order_index: index + 1,
+          })
+        )
+      );
 
       return MessageUtil.success(res, {
-        message: "Notifications fetched successfully",
-        status: 200,
-        data: notifications,
+        message: "Workout session assigned to user successfully",
+        status: 201,
+        data: sessionRecords,
       });
     } catch (error: any) {
       return MessageUtil.error(res, {
-        message: "Failed to fetch notifications",
+        message: "Failed to create user workout session",
         status: 500,
         data: error.message,
       });
     }
   }
 
-  public async contactUs(req: Request, res: Response): Promise<any> {
+  public async createNotification(req: Request, res: Response): Promise<any> {
     try {
-      const { email } = req.body;
+      const formData = req.body; // Fields like name, age, etc.
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] }; // Multer files
+      console.log("formData====>>>>>", formData); // Check form data here
+      console.log("files====>>>>>", files); // Check files here
 
-      // Check if user exists
-      const user = await Users.findOne({
-        where: { email },
-      });
+      const { title, message, target_user_id } = formData;
 
-      if (user) {
-        return MessageUtil.success(res, {
-          message:
-            "You are already a valued member. Our team will contact you shortly.",
-          status: statusCodes.SUCCESS,
+      if (!title || !message) {
+        return MessageUtil.error(res, {
+          message: "Title and message are required",
+          status: 400,
         });
       }
 
-      return MessageUtil.success(res, {
-        message:
-          "Thank you for contacting us! Our team will reach out to you soon.",
-        status: statusCodes.SUCCESS,
+      let media_url: string | null = null;
+      let media_type: "image" | "video" | "pdf" | "none" = "none";
+
+      if (files?.notificationFile && files.notificationFile[0]) {
+        const file = files.notificationFile[0];
+        media_url = await uploadFileToS3(file, "notificationFiles");
+
+        const mime = file.mimetype;
+        if (mime.startsWith("image/")) media_type = "image";
+        else if (mime.startsWith("video/")) media_type = "video";
+        else if (mime === "application/pdf") media_type = "pdf";
+      }
+
+      const is_global = !target_user_id;
+
+      const uploadedUrls: { [key: string]: string } = {};
+      if (files) {
+        for (const [fieldName, fileArray] of Object.entries(files)) {
+          const file = fileArray[0]; // Assume single file for each field
+          const url = await uploadFileToS3(file, fieldName); // Upload and get URL
+          uploadedUrls[fieldName] = url;
+        }
+      }
+
+      const notification = await Notifications.create({
+        title,
+        message,
+        media_url,
+        media_type,
+        is_global,
+        target_user_id: target_user_id || null,
       });
+      if (notification) {
+        return MessageUtil.success(res, {
+          message: "Notification created successfully",
+          status: 201,
+          data: notification,
+        });
+      } else {
+        return MessageUtil.error(res, {
+          message: "Failed to create notification, Please try again.",
+          status: 500,
+        });
+      }
     } catch (error: any) {
-      const errorPayload: IReturnResponsePayload = {
-        message: "something went wrong",
+      return MessageUtil.error(res, {
+        message: "Failed to create notification",
         status: 500,
         data: error.message,
-      };
-
-      return MessageUtil.error(res, errorPayload);
+      });
     }
   }
 }
 
 // Export an instance of the class
-export default new UserController();
+export default new AdminController();

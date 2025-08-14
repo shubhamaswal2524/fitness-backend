@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arsh Sandhu Fitness</title>
+    <style>
+      html,
+      body {
+        margin: 0 auto !important;
+        padding: 0 !important;
+        font-family: Arial, Helvetica, sans-serif;
+        height: auto;
+        width: 100% !important;
+        background: #f4fbff;
+        color: #0c041e;
+        line-height: 1.3;
+      }
+
+      * {
+        -ms-text-size-adjust: 100%;
+        -webkit-text-size-adjust: 100%;
+        box-sizing: border-box;
+      }
+
+      div[style*="margin: 16px 0"] {
+        margin: 0 !important;
+      }
+
+      table,
+      td {
+        mso-table-lspace: 0pt !important;
+        mso-table-rspace: 0pt !important;
+      }
+
+      table {
+        border-spacing: 0 !important;
+        table-layout: fixed !important;
+        margin: 0 auto !important;
+      }
+
+      img {
+        -ms-interpolation-mode: bicubic;
+        max-width: 100%;
+      }
+
+      a {
+        text-decoration: none;
+      }
+
+      *[x-apple-data-detectors],
+      .unstyle-auto-detected-links *,
+      .aBn {
+        border-bottom: 0 !important;
+        cursor: default !important;
+        color: inherit !important;
+        text-decoration: none !important;
+        font-size: inherit !important;
+        font-family: inherit !important;
+        font-weight: inherit !important;
+        line-height: inherit !important;
+      }
+
+      .a6S {
+        display: none !important;
+        opacity: 0.01 !important;
+      }
+
+      .im {
+        color: inherit !important;
+      }
+
+      img.g-img + div {
+        display: none !important;
+      }
+
+      .details-table {
+        width: 100%;
+        border-spacing: 0;
+        border-collapse: separate;
+        border-radius: 20px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .details-table .details-row td {
+        padding: 12px 10px;
+        font-size: 14px;
+        color: white;
+        font-weight: normal;
+        line-height: 1.5;
+        text-align: left;
+      }
+
+      .details-table .details-row .label {
+        font-weight: bold;
+        padding-left: 20px;
+        width: 30%;
+        text-align: left;
+      }
+
+      .details-table .details-row .value {
+        width: 70%;
+        text-align: left;
+        padding-right: 20px;
+      }
+
+      .message-row {
+        text-align: center;
+        padding-top: 30px;
+        padding-bottom: 30px;
+        font-size: 16px;
+        color: white;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+
+  <body>
+    <table
+      class="main-handle"
+      style="
+        border: 0;
+        max-width: 642px;
+        width: 100%;
+        margin: 10px auto !important;
+        background: radial-gradient(
+          circle,
+          rgba(34, 30, 25, 1) 0%,
+          rgba(24, 20, 12, 1) 50%,
+          rgba(34, 30, 25, 1) 100%
+        );
+        font-family: Arial, Helvetica, sans-serif;
+        padding: 0;
+        border-collapse: separate !important;
+        background-repeat: no-repeat;
+        background-size: auto;
+        background-position: top center;
+        border-radius: 20px;
+      "
+    >
+      <tbody>
+        <tr>
+          <td
+            class="logo"
+            style="width: 100%; padding: 37px 15px 20px; text-align: center"
+          >
+            <img
+              src="https://arshfitnessbucket.s3.ap-south-1.amazonaws.com/mainlogo.png"
+              style="vertical-align: bottom"
+              alt="Arsh Sandhu Fitness"
+              width="180"
+              style="
+                display: block;
+                margin: 0 auto;
+                border: 0;
+                outline: none;
+                text-decoration: none;
+              "
+            />
+          </td>
+        </tr>
+
+        <tr>
+          <td class="content" style="width: 100%; padding: 0 20px">
+            <table
+              class="details-table"
+              style="
+                width: 100%;
+                max-width: 534px;
+                border: 0;
+                margin: 0 auto;
+                border-collapse: separate;
+              "
+            >
+              <tbody>
+                <tr class="details-row">
+                  <td class="label">Name:</td>
+                  <td class="value">{{name}}</td>
+                </tr>
+                <tr class="details-row">
+                  <td class="label">Mobile No.:</td>
+                  <td class="value">{{mobile}}</td>
+                </tr>
+                <tr class="details-row">
+                  <td class="label">Email Id:</td>
+                  <td class="value">{{email}}</td>
+                </tr>
+                <tr class="details-row">
+                  <td class="label">Age:</td>
+                  <td class="value">{{age}}</td>
+                </tr>
+                <tr class="details-row">
+                  <td class="label">Height:</td>
+                  <td class="value">{{height}} cm</td>
+                </tr>
+                <tr class="details-row">
+                  <td class="label">weight:</td>
+                  <td class="value">{{weight}} kg</td>
+                </tr>
+                <tr class="details-row">
+                  <td class="label">Height:</td>
+                  <td class="value">{{height}} cm</td>
+                </tr>
+                <tr class="details-row">
+                  <td class="label">Bio:</td>
+                  <td class="value">{{bio}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td
+            class="message-row"
+            style="
+              text-align: center;
+              padding: 30px 20px 20px;
+              font-size: 16px;
+              color: white;
+              font-weight: bold;
+            "
+          >
+            <p style="margin: 0">Thank you for choosing our fitness service!</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td
+            class="message-row"
+            style="
+              text-align: center;
+              padding: 0px 20px 40px;
+              font-size: 16px;
+              color: white;
+              font-weight: bold;
+            "
+          >
+            <p style="margin: 0">
+              Copyright © 2025 Sandhu Fitness | All Rights Reserved.
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>

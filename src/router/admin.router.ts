@@ -79,4 +79,5 @@ export default express
       });
     },
     adminController.createNotification
-  );
+  )
+  .get("/get-workouts", authorizeRoles("admin"), adminController.getWorkouts);

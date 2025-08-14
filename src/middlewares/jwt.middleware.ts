@@ -1,6 +1,7 @@
 // middleware/jwtAuth.ts
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import Users from "../models/user.model";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -19,7 +20,11 @@ declare global {
   }
 }
 
-const jwtAuth = (req: Request, res: Response, next: NextFunction): any => {
+const jwtAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<any> => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -32,6 +37,10 @@ const jwtAuth = (req: Request, res: Response, next: NextFunction): any => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const user = await Users.findByPk(decoded.id);
+    if (!user || user.userAccessToken !== token) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
     // @ts-ignore - attach user info to request (optional)
     req.user = decoded;
     next();

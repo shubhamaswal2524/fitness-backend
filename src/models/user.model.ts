@@ -22,7 +22,7 @@ export const Users = db.sequelize.define("users", {
   },
   password: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
   phoneNumber: {
     type: DataTypes.STRING,
@@ -76,7 +76,19 @@ export const Users = db.sequelize.define("users", {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
+  lastLogin: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  lastSessionDuration: {
+    type: DataTypes.INTEGER, // store in seconds or milliseconds
+    allowNull: true,
+  },
   userAccessToken: {
+    type: DataTypes.STRING, // Store image URL or file path
+    allowNull: true,
+  },
+  bio: {
     type: DataTypes.STRING, // Store image URL or file path
     allowNull: true,
   },

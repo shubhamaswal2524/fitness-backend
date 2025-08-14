@@ -627,6 +627,34 @@ class AdminController {
       });
     }
   }
+
+  public async getRecentLogins(req: Request, res: Response): Promise<any> {
+    try {
+      const limitValue = parseInt(req.body?.limit);
+      const limit = !isNaN(limitValue) && limitValue > 0 ? limitValue : 5;
+
+      const recentUsers = await Users.findAll({
+        where: {
+          lastLogin: { [Op.ne]: null }, // Exclude users who never logged in
+        },
+        order: [["lastLogin", "DESC"]],
+        limit,
+        attributes: ["id", "name", "email", "lastLogin"], // Limit returned fields
+      });
+
+      return MessageUtil.success(res, {
+        message: "Recent login users fetched successfully",
+        status: 200,
+        data: recentUsers,
+      });
+    } catch (error: any) {
+      return MessageUtil.error(res, {
+        message: "Failed to fetch recent logins",
+        status: 500,
+        data: error.message,
+      });
+    }
+  }
 }
 
 // Export an instance of the class

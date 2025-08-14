@@ -56,3 +56,4 @@ db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
 export default db;
+export { sequelize };

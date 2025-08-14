@@ -2,8 +2,8 @@ import twilio from "twilio";
 import dotenv from "dotenv";
 
 dotenv.config();
-const accountSid = "";
-const authToken = "";
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
 
 class WhatsAppService {
   private client: twilio.Twilio;
@@ -11,14 +11,16 @@ class WhatsAppService {
 
   constructor() {
     this.client = twilio(accountSid, authToken);
-    this.fromNumber = "whats";
+    this.fromNumber = process.env.TWILIO_WHATSAPP_NUMBER || "";
   }
 
   async sendWhatsAppMessage(to: string, message: string) {
     try {
+      const cleanedNumber = to.replace(/^\+/, "").replace(/\s+/g, "");
+      console.log("=======>>>>>>", `whatsapp:+91${cleanedNumber}`);
       const response = await this.client.messages.create({
-        from: "whatsa", // Twilio sandbox number
-        to: `whatsapp:${to}`, // User's WhatsApp number
+        from: this.fromNumber, // Twilio sandbox number
+        to: `whatsapp:+91${cleanedNumber}`, // e.g., 'whatsapp:+917878787878'
         body: message,
       });
 

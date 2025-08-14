@@ -7,21 +7,29 @@ import {
 } from "../../utils/messageResponse";
 import jwt from "jsonwebtoken";
 import statusCodes from "../../utils/helperConstants";
-import { Op } from "sequelize";
+import { Op, Transaction } from "sequelize";
 import { uploadFileToS3 } from "../../middlewares/upload.middleware";
 import { UserWorkoutSessions } from "../../models/user_workout_sessions.model";
 import { Notifications } from "../../models/notification.model";
+import sgMail from "@sendgrid/mail";
+import { whatsappService } from "../../services/whatsapp.service.ts/whatsapp.service";
+import { readFileSync } from "fs";
+import path from "path";
+import { sendCongratulationsEmail } from "../../services/email.service/templates/signup";
+import { sequelize } from "../../config/db.config";
 
 interface S3File extends Express.Multer.File {
   location: string; // S3 file URL
   key: string; // S3 key (filename)
 }
+let transaction: Transaction;
 
 class UserController {
   // Create a new user
   public async createUser(req: Request, res: Response): Promise<any> {
     try {
-      const { firstName, lastName, email, phoneNumber, password } = req.body;
+      const { name, email, phoneNumber, password, age, height, weight, bio } =
+        req.body;
 
       // Check if user exists
       const user = await Users.findOne({
@@ -29,7 +37,7 @@ class UserController {
           [Op.or]: [{ email }, { phoneNumber }],
         },
       });
-
+      console.log("user", user);
       if (user) {
         return MessageUtil.error(res, {
           message: "Invalid User or User already exists",
@@ -38,32 +46,74 @@ class UserController {
       }
 
       // const password = generateRandomPassword(10);
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      // const saltRounds = 10;
+      // const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-      const newUser = await Users.create({
-        name: `${firstName} ${lastName}`,
+      transaction = await sequelize.transaction();
+
+      const newUser = await Users.create(
+        {
+          name: name,
+          email,
+          // password: hashedPassword, // You should hash the password before storing it
+          phoneNumber,
+          phone_code: 91,
+          is_active: true,
+          role: "user",
+          age,
+          height,
+          weight,
+          bio,
+        },
+        { transaction }
+      );
+
+      const messageResponse = await sendCongratulationsEmail({
         email,
-        password: hashedPassword, // You should hash the password before storing it
-        phoneNumber,
-        phone_code: 91,
-        is_active: true,
-        role: "user",
+        name,
+        mobile: phoneNumber,
+        age,
+        height,
+        weight,
+        bio,
       });
+      if (messageResponse) {
+        await transaction.commit();
+
+        const responsePayload: any = {
+          message: "User created successfully",
+          status: 201,
+          data: newUser,
+        };
+
+        return MessageUtil.success(res, responsePayload);
+      } else {
+        await transaction.rollback();
+
+        const errorPayload: IReturnResponsePayload = {
+          message: "Failed to create user",
+          status: 500,
+        };
+        return MessageUtil.error(res, errorPayload);
+      }
+      // await whatsappService.sendWhatsAppMessage(
+      //   phoneNumber,
+      //   `👋 Hi ${firstName}, this is a test message to confirm our WhatsApp integration is working properly.
+
+      //   📦 Please choose one of the following packages by replying with the exact name:\n\n1. package-1\n2. package-2\n3. package-3`
+      // );
 
       // whatsappService.sendWhatsAppMessage(
       //   phone_number  ,
       //   "Hello! This is a test WhatsApp message 🎉"
       // );
 
-      const responsePayload: IReturnResponsePayload<typeof newUser> = {
-        message: "User created successfully",
-        status: 201,
-        data: newUser,
-      };
-
-      return MessageUtil.success(res, responsePayload);
+      // const responsePayload: IReturnResponsePayload<typeof newUser> = {
     } catch (error: any) {
+      if (transaction) {
+        await transaction.rollback();
+      }
+      console.log("error", error);
       const errorPayload: IReturnResponsePayload = {
         message: "Failed to create user",
         status: 500,
@@ -102,6 +152,10 @@ class UserController {
         process.env.JWT_SECRET as string,
         { expiresIn: "1h" } // Token expires in 1 hour
       );
+      await user.update({
+        userAccessToken: token,
+        lastLogin: new Date(), // optional, as previously discussed
+      });
       // await whatsappService.sendWhatsAppMessage(
       //   "+917895270806",
       //   "Hello how are you"
@@ -125,13 +179,27 @@ class UserController {
 
   public async logoutUser(req: Request, res: Response): Promise<any> {
     try {
+      const user = req.user;
+      const userData = await Users.findByPk(user?.id); // Assuming middleware decoded token and set req.user
+
+      if (userData?.lastLogin) {
+        const now = new Date();
+        const durationInMs =
+          now.getTime() - new Date(userData.lastLogin).getTime();
+        const durationInSec = Math.floor(durationInMs / 1000);
+
+        await userData.update({
+          lastSessionDuration: durationInSec,
+          userAccessToken: null,
+        });
+      }
+
       // Optionally, you could invalidate the token via a blacklist (not covered here)
       const responsePayload: IReturnResponsePayload<null> = {
         message: "Logout successful",
         status: 200,
         data: null,
       };
-
       return MessageUtil.success(res, responsePayload);
     } catch (error: any) {
       return MessageUtil.error(res, {

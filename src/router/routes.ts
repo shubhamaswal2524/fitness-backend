@@ -3,6 +3,7 @@ import userRouter from "./user.router";
 import adminRouter from "./admin.router";
 import { paymentController } from "../controllers/payment/payment.controller";
 import paymentRouter from "./payment.router";
+import webhookRouter from "./webhook.router";
 
 export default function routes(app: Application): void {
   // Healthcheck route
@@ -12,4 +13,5 @@ export default function routes(app: Application): void {
   app.use("/api/v1/user", userRouter);
   app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1/payment", paymentRouter);
+  app.use("/whatsapp", webhookRouter);
 }

@@ -77,6 +77,8 @@ class UserController {
         weight,
         bio,
       });
+
+      console.log("messageResponse", messageResponse);
       if (messageResponse) {
         await transaction.commit();
 

@@ -67,6 +67,7 @@ export const sendCongratulationsEmail = async ({
 
     const response = await sgMail.send(msg);
     console.log("first", response);
+    return response;
   } catch (error) {
     console.log("error", error);
     return false;

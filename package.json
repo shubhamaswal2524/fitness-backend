@@ -4,7 +4,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/src/index.js",
-    "dev": "nodemon src/index.ts"
+    "dev": "nodemon src/index.ts",
+    "postbuild": "cp -r src/services/email.service/templates dist/services/email.service/"
   },
   "author": "",
   "license": "ISC",
